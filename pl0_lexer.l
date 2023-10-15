@@ -70,6 +70,31 @@ static void number2ast(unsigned int val)
 
 %}
 
+/* you can add actual definitions below */
+ DIGIT  [0-9]
+ NUMBER {DIGIT}({DIGIT}*)
+ LETTER		[_a-zA-Z]
+ LETTERORDIGIT	({LETTER}|{DECDIGIT})
+ IDENT		{LETTER}({LETTERORDIGIT}*)
+ BLANK  [ ]
+ TAB    \t
+ VT \v
+ FORMFEED   \f
+ NEWLINE         \n
+ CR              \r
+ EOL             ({NEWLINE}|({CR}{NEWLINE}))
+ POUNDSIGN    #
+ COMMENT         {POUNDSIGN}.*
+ IGNORED         ({BLANK}|{TAB}|{VT}|{FORMFEED}|{EOL}|{COMMENT})
+ PLUS   +
+ MINUS  -
+ MULT   *
+ DIV    /
+ PUNCTUATION [.|;|=|,|:=|'|']
+ RESERVEDWORD   [const | var | procedure | call | begin | end | if | then | else | while | do | read | write | skip | odd]
+ RELOPS [<> | < | <= | > | >=]
+
+ /* the rules section starts after the %% below */
     
 
 %%
