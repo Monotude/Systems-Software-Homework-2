@@ -75,7 +75,6 @@ NUMBER              {DIGIT}({DIGIT}*)
 LETTER              [_a-zA-Z]
 LETTERORDIGIT	    ({LETTER}|{DIGIT})
 IDENT		        {LETTER}({LETTERORDIGIT}*)
-SPACE               [ ]
 COMMENTSTART        [#]
 COMMENT             {COMMENTSTART}.*
 NEWLINE             [\n]
