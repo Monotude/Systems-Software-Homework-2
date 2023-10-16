@@ -9,12 +9,12 @@ Made by: Tyler Knoop, Brady Napier, and Shaun Gorllapati
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc != 2) // if too few or too many arguments are given, give an error
     {
         bail_with_error("One file name needed.");
     }
 
-    else
+    else // run the lexer
     {
         lexer_init(argv[1]);
         lexer_output();
