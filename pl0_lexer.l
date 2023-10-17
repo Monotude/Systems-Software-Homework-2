@@ -66,6 +66,66 @@ static void number2ast(unsigned int val)
     yylval = t;
 }
 
+void printNumError()
+{
+    char* msg = malloc(24 + strlen(yytext));
+    sprintf(msg, "Number (%s) is too large!", yytext);
+    yyerror(filename, msg);
+    free(msg);
+}
+
+int checkMaxNum()
+{
+    char intMax[11];
+    sprintf(intMax, "%d", INT_MAX);
+    int len = strlen(yytext);
+
+    if(len > 10)
+    {
+        return 1;
+    }
+
+    if(len == 10)
+    {
+        for(int i = 0; i < 10; i++)
+        {
+            if(yytext[i] > intMax[i])
+            {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void string2OctalString(char* input, char* output)
+{
+    int loop = 0;
+    int i = 0;
+
+    while (input[loop] != '\0') 
+    {
+        sprintf((char*)(output + i), "%02o", input[loop]);
+        loop += 1;
+        i += 2;
+    }
+
+    output[i++] = '\0';
+}
+
+void printTokError()
+{
+    char* msg = malloc(29 + strlen(yytext) + 3 * strlen(yytext));
+    char* temp = malloc(3 * strlen(yytext) + 1);
+    string2OctalString(yytext, temp);
+    sprintf(msg, "invalid character: '%s' ('\\0%s')", yytext, temp);
+    yyerror(filename, msg);
+    free(msg);
+    free(temp);
+}
+
+
 %}
 
 /* you can add actual definitions below */
@@ -79,6 +139,11 @@ COMMENTSTART        [#]
 COMMENT             {COMMENTSTART}.*
 NEWLINE             [\n]
 IGNORED             [ \t\v\f\r]
+PUNCTUATION         [.|;|=|,|:=|(|)]
+RESERVEDWORD        [const | var | procedure | call | begin | end | if | then | else | while | do | read | write | skip | odd]
+RELOPS              [<> | < | <= | > | >=]
+OPERATIONS          [+ | - | * | /]
+EVERYTHING          ({IGNORED} | {COMMENT} | {NEWLINE} | {OPERATIONS} | {PUNCTUATION} | {RESERVEDWORD} | {RELOPS} | {IDENT} | {NUMBER})
 
 /* the rules section starts after the %% below */
 
@@ -90,9 +155,9 @@ IGNORED             [ \t\v\f\r]
 
 <<EOF>>             { return YYEOF; } 
 
-[+]                 { return plussym; }
+[\+]                { return plussym; }
 [-]                 { return minussym; }
-[*]                 { return multsym; }
+[\*]                { return multsym; }
 [/]                 { return divsym; }
 [.]                 { return periodsym; }
 [;]                 { return semisym; }
@@ -115,7 +180,7 @@ write               { return writesym; }
 skip                { return skipsym; }
 odd                 { return oddsym; }
 {IDENT}             { return identsym; }
-{NUMBER}            { return numbersym; }  
+{NUMBER}            { if(checkMaxNum()) printNumError(); return numbersym; }  
 [<][>]              { return neqsym; }
 [<]                 { return ltsym; }
 [<][=]              { return leqsym; }
@@ -123,6 +188,7 @@ odd                 { return oddsym; }
 [>][=]              { return geqsym; }
 [(]                 { return lparensym; }
 [)]                 { return rparensym; }
+[^{EVERYTHING}]     { printTokError(); }
 
 %%
 
@@ -132,6 +198,7 @@ odd                 { return oddsym; }
 // Requires: fname is the name of a readable file
 // Initialize the lexer and start it reading
 // from the given file name
+
 void lexer_init(char *fname)
 {
     errors_noted = false;
