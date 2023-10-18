@@ -66,78 +66,24 @@ static void number2ast(unsigned int val)
     yylval = t;
 }
 
-void printNumError() // print the number error
+static void numberTooBig()
 {
-    char* msg = malloc(24 + strlen(yytext));
-    sprintf(msg, "Number (%s) is too large!", yytext);
-    yyerror(filename, msg);
-    free(msg);
-}
-
-int checkMaxNum() // check if the number is too big for max
-{
-    char intMax[11]; // get the max int as a string
-    sprintf(intMax, "%d", INT_MAX);
-    int len = strlen(yytext) + 1;
-
-    if(len > 11) // if theres more than 10 numbers its too big
-    {
-        return 1;
-    }
-
-    if(len == 11) // check number by number to see if it is too big
-    {
-        for(int i = 0; i < 10; i++)
-        {
-            if(yytext[i] > intMax[i])
-            {
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-void string2OctalString(char* input, char* output) // print octal of char
-{
-    int loop = 0;
-    int i = 0;
-
-    while (input[loop] != '\0') 
-    {
-        sprintf((char*)(output + i), "%02o", input[loop]);
-        loop += 1;
-        i += 2;
-    }
-
-    output[i++] = '\0';
-}
-
-void printCharError() // print the character error
-{
-    char* msg = malloc(29 + strlen(yytext) + 3 * strlen(yytext));
-    char* temp = malloc(3 * strlen(yytext) + 1);
-    string2OctalString(yytext, temp);
-    sprintf(msg, "invalid character: '%s' ('\\0%s')", yytext, temp);
-    yyerror(filename, msg);
-    free(msg);
-    free(temp);
+    char msgbuf[522];
+    snprintf(msgbuf, 522, "Number (%s) is too large!", yytext);
+    yyerror(lexer_filename(), msgbuf);
 }
 
 %}
 
 /* you can add actual definitions below */
 
-IGNORED             [ \t\v\f\r]
+IGNORED             [ \t\v\f\r\n]
 COMMENTSTART        [#]
 COMMENT             {COMMENTSTART}.*
-NEWLINE             [\n]
 LETTER              [_a-zA-Z]
 DIGIT               [0-9]
 LETTERORDIGIT	    ({LETTER}|{DIGIT})
 IDENT		        {LETTER}({LETTERORDIGIT}*)
-NUMBER              {DIGIT}({DIGIT}*)
 
 /* the rules section starts after the %% below */
 
@@ -145,7 +91,6 @@ NUMBER              {DIGIT}({DIGIT}*)
 
 {IGNORED}           { ; } // things to be ignored
 {COMMENT}           { ; } // comments (also ignored)
-{NEWLINE}           { ; } // new line
 [+]                 { tok2ast(plussym); return plussym; } // operators
 [-]                 { tok2ast(minussym); return minussym; }
 [*]                 { tok2ast(multsym); return multsym; }
@@ -169,17 +114,18 @@ do                  { tok2ast(dosym); return dosym; }
 read                { tok2ast(readsym); return readsym; }
 write               { tok2ast(writesym); return writesym; }
 skip                { tok2ast(skipsym); return skipsym; }
-odd                 { tok2ast(oddsym); return oddsym; } // relational operators
-[<][>]              { tok2ast(neqsym); return neqsym; }
+odd                 { tok2ast(oddsym); return oddsym; }
+[<][>]              { tok2ast(neqsym); return neqsym; } // relational operators
 [<]                 { tok2ast(ltsym); return ltsym; }
 [<][=]              { tok2ast(leqsym); return leqsym; }
 [>]                 { tok2ast(gtsym); return gtsym; }
 [>][=]              { tok2ast(geqsym); return geqsym; }
 [(]                 { tok2ast(lparensym); return lparensym; } // parenthesis
 [)]                 { tok2ast(rparensym); return rparensym; }
-{NUMBER}            { if(checkMaxNum()) printNumError(); tok2ast(numbersym); return numbersym; }  // number
-{IDENT}             { tok2ast(identsym); return identsym; } // identifiers
-.                   { printCharError(); tok2ast(YYUNDEF); } // any character that is not a token
+{DIGIT}{1,10}       { long check; sscanf(yytext, "%ld", &check); if(INT_MAX < check) numberTooBig(); number2ast(numbersym); return numbersym;}  // number with right amount of numbers
+{DIGIT}+            { numberTooBig(); number2ast(numbersym); return numbersym; } // number has too many numbers 
+{IDENT}             { ident2ast(yytext); return identsym; } // identifiers
+.                   { char msgbuf[512]; sprintf(msgbuf, "invalid character: '%c' ('\\0%o')", *yytext, *yytext); yyerror(lexer_filename(), msgbuf); } // any character that is not a token
 
 %%
 
