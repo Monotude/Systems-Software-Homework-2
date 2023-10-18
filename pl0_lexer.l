@@ -66,7 +66,7 @@ static void number2ast(unsigned int val)
     yylval = t;
 }
 
-void printNumError()
+void printNumError() // print the number error
 {
     char* msg = malloc(24 + strlen(yytext));
     sprintf(msg, "Number (%s) is too large!", yytext);
@@ -74,18 +74,18 @@ void printNumError()
     free(msg);
 }
 
-int checkMaxNum()
+int checkMaxNum() // check if the number is too big for max
 {
-    char intMax[11];
+    char intMax[11]; // get the max int as a string
     sprintf(intMax, "%d", INT_MAX);
-    int len = strlen(yytext);
+    int len = strlen(yytext) + 1;
 
-    if(len > 10)
+    if(len > 11) // if theres more than 10 numbers its too big
     {
         return 1;
     }
 
-    if(len == 10)
+    if(len == 11) // check number by number to see if it is too big
     {
         for(int i = 0; i < 10; i++)
         {
@@ -99,7 +99,7 @@ int checkMaxNum()
     return 0;
 }
 
-void string2OctalString(char* input, char* output)
+void string2OctalString(char* input, char* output) // print octal of char
 {
     int loop = 0;
     int i = 0;
@@ -114,7 +114,7 @@ void string2OctalString(char* input, char* output)
     output[i++] = '\0';
 }
 
-void printTokError()
+void printCharError() // print the character error
 {
     char* msg = malloc(29 + strlen(yytext) + 3 * strlen(yytext));
     char* temp = malloc(3 * strlen(yytext) + 1);
@@ -125,70 +125,61 @@ void printTokError()
     free(temp);
 }
 
-
 %}
 
 /* you can add actual definitions below */
 
-DIGIT               [0-9]
-NUMBER              {DIGIT}({DIGIT}*)
-LETTER              [_a-zA-Z]
-LETTERORDIGIT	    ({LETTER}|{DIGIT})
-IDENT		        {LETTER}({LETTERORDIGIT}*)
+IGNORED             [ \t\v\f\r]
 COMMENTSTART        [#]
 COMMENT             {COMMENTSTART}.*
 NEWLINE             [\n]
-IGNORED             [ \t\v\f\r]
-PUNCTUATION         [.|;|=|,|:=|(|)]
-RESERVEDWORD        [const | var | procedure | call | begin | end | if | then | else | while | do | read | write | skip | odd]
-RELOPS              [<> | < | <= | > | >=]
-OPERATIONS          [+ | - | * | /]
-EVERYTHING          ({IGNORED} | {COMMENT} | {NEWLINE} | {OPERATIONS} | {PUNCTUATION} | {RESERVEDWORD} | {RELOPS} | {IDENT} | {NUMBER})
+LETTER              [_a-zA-Z]
+DIGIT               [0-9]
+LETTERORDIGIT	    ({LETTER}|{DIGIT})
+IDENT		        {LETTER}({LETTERORDIGIT}*)
+NUMBER              {DIGIT}({DIGIT}*)
 
 /* the rules section starts after the %% below */
 
 %%
 
-{IGNORED}           { ; }
-{COMMENT}           { ; }
-{NEWLINE}           { ; }
-
-<<EOF>>             { return YYEOF; } 
-
-[\+]                { return plussym; }
-[-]                 { return minussym; }
-[\*]                { return multsym; }
-[/]                 { return divsym; }
-[.]                 { return periodsym; }
-[;]                 { return semisym; }
-[=]                 { return eqsym; }
-[,]                 { return commasym; }
-:=                  { return becomessym; }
-const               { return constsym; }
-var                 { return varsym; }
-procedure           { return proceduresym; }
-call                { return callsym; }
-begin               { return beginsym; }
-end                 { return endsym; }
-if                  { return ifsym; }
-then                { return thensym; }
-else                { return elsesym; }
-while               { return whilesym; }
-do                  { return dosym; }
-read                { return readsym; }
-write               { return writesym; }
-skip                { return skipsym; }
-odd                 { return oddsym; }
-{IDENT}             { return identsym; }
-{NUMBER}            { if(checkMaxNum()) printNumError(); return numbersym; }  
-[<][>]              { return neqsym; }
-[<]                 { return ltsym; }
-[<][=]              { return leqsym; }
-[>]                 { return gtsym; }
-[>][=]              { return geqsym; }
-[(]                 { return lparensym; }
-[)]                 { return rparensym; }
-[^{EVERYTHING}]     { printTokError(); }
+{IGNORED}           { ; } // things to be ignored
+{COMMENT}           { ; } // comments (also ignored)
+{NEWLINE}           { ; } // new line
+[+]                 { tok2ast(plussym); return plussym; } // operators
+[-]                 { tok2ast(minussym); return minussym; }
+[*]                 { tok2ast(multsym); return multsym; }
+[/]                 { tok2ast(divsym); return divsym; }
+[.]                 { tok2ast(periodsym); return periodsym; } // puncuation
+[;]                 { tok2ast(semisym); return semisym; }
+[=]                 { tok2ast(eqsym); return eqsym; }
+[,]                 { tok2ast(commasym); return commasym; }
+[:][=]              { tok2ast(becomessym); return becomessym; }
+const               { tok2ast(constsym); return constsym; } // reserved words
+var                 { tok2ast(varsym); return varsym; }
+procedure           { tok2ast(proceduresym); return proceduresym; }
+call                { tok2ast(callsym); return callsym; }
+begin               { tok2ast(beginsym); return beginsym; }
+end                 { tok2ast(endsym); return endsym; }
+if                  { tok2ast(ifsym); return ifsym; }
+then                { tok2ast(thensym); return thensym; }
+else                { tok2ast(elsesym); return elsesym; }
+while               { tok2ast(whilesym); return whilesym; }
+do                  { tok2ast(dosym); return dosym; }
+read                { tok2ast(readsym); return readsym; }
+write               { tok2ast(writesym); return writesym; }
+skip                { tok2ast(skipsym); return skipsym; }
+odd                 { tok2ast(oddsym); return oddsym; } // relational operators
+[<][>]              { tok2ast(neqsym); return neqsym; }
+[<]                 { tok2ast(ltsym); return ltsym; }
+[<][=]              { tok2ast(leqsym); return leqsym; }
+[>]                 { tok2ast(gtsym); return gtsym; }
+[>][=]              { tok2ast(geqsym); return geqsym; }
+[(]                 { tok2ast(lparensym); return lparensym; } // parenthesis
+[)]                 { tok2ast(rparensym); return rparensym; }
+{NUMBER}            { if(checkMaxNum()) printNumError(); tok2ast(numbersym); return numbersym; }  // number
+{IDENT}             { tok2ast(identsym); return identsym; } // identifiers
+.                   { printCharError(); tok2ast(YYUNDEF); } // any character that is not a token
 
 %%
 
